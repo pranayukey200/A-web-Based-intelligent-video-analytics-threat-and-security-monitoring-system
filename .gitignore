@@ -1,0 +1,34 @@
+# OS / Editor
+Thumbs.db
+.DS_Store
+*.log
+*.tmp
+
+# Node / Python / Java / build folders (add as needed)
+node_modules/
+venv/
+__pycache__/
+*.class
+build/
+dist/
+
+# Large binaries / data / model files (do not push massive datasets / models)
+*.zip
+*.tar.gz
+*.tar
+*.exe
+*.dll
+*.bin
+*.h5
+*.pt
+*.pth
+
+# IDE settings
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln
+
+# temporary files
+*.swp
