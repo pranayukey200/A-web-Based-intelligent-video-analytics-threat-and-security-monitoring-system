@@ -4,7 +4,7 @@ Thumbs.db
 *.log
 *.tmp
 
-# Node / Python / Java / build folders (add as needed)
+# Python / Node / Java / build folders
 node_modules/
 venv/
 __pycache__/
@@ -12,23 +12,19 @@ __pycache__/
 build/
 dist/
 
-# Large binaries / data / model files (do not push massive datasets / models)
-*.zip
-*.tar.gz
-*.tar
-*.exe
-*.dll
-*.bin
+# Large model/data
 *.h5
 *.pt
 *.pth
+models/
+data/
 
-# IDE settings
+# IDE
 .vscode/
 .idea/
-*.suo
-*.user
-*.sln
 
-# temporary files
-*.swp
+# avoid adding whole user folders accidentally
+AppData/
+Downloads/
+Documents/
+OneDrive/
