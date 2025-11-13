@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Security Protocol v2.0 - ESP32 Integrated</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00f3ff;
+            --success: #00ff41;
+            --danger: #ff0040;
+            --warning: #ffaa00;
+            --purple: #a855f7;
+            --bg-dark: #0a0e1a;
+            --bg-darker: #050811;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px var(--primary); }
+            50% { box-shadow: 0 0 40px var(--primary); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+            color: var(--primary);
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scan 6s linear infinite;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header {
+            background: rgba(10, 14, 26, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--primary);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: glow 3s infinite;
+        }
+
+        .header-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            font-weight: 700;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px var(--primary);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            background: var(--glass);
+            border: 1px solid var(--success);
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            animation: fade-in 0.6s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 243, 255, 0.2);
+        }
+
+        .card-header {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: auto;
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            background: #000;
+            box-shadow: 0 5px 30px rgba(0, 243, 255, 0.3);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px dashed rgba(0, 243, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .info-row:hover {
+            background: rgba(0, 243, 255, 0.05);
+            padding-left: 10px;
+            border-left: 2px solid var(--primary);
+        }
+
+        .info-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 1.1em;
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            padding: 20px 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .stat-box:hover {
+            background: rgba(0, 243, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 900;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--success);
+            text-shadow: 0 0 15px var(--success);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        .threat-display {
+            height: 100px;
+            background: var(--bg-darker);
+            border: 2px solid var(--success);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .threat-text {
+            font-size: 1.6em;
+            font-weight: 900;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--success);
+            text-shadow: 0 0 20px var(--success);
+            z-index: 2;
+        }
+
+        .threat-display.danger {
+            border-color: var(--danger);
+            animation: pulse 0.5s infinite;
+            background: rgba(255, 0, 64, 0.1);
+        }
+
+        .threat-display.danger .threat-text {
+            color: var(--danger);
+            text-shadow: 0 0 20px var(--danger);
+        }
+
+        .threat-display.warning {
+            border-color: var(--warning);
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .threat-display.warning .threat-text {
+            color: var(--warning);
+            text-shadow: 0 0 20px var(--warning);
+        }
+
+        .threat-display.fire {
+            border-color: var(--danger);
+            animation: shake 0.5s infinite, pulse 0.5s infinite;
+            background: rgba(255, 0, 64, 0.2);
+        }
+
+        .threat-display.fire .threat-text {
+            color: var(--danger);
+            text-shadow: 0 0 30px var(--danger);
+        }
+
+        .threat-display.footstep {
+            border-color: var(--warning);
+            animation: pulse 1s infinite;
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .threat-display.footstep .threat-text {
+            color: var(--warning);
+            text-shadow: 0 0 20px var(--warning);
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .sensor-box {
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .sensor-value {
+            font-size: 2em;
+            font-weight: 900;
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        .sensor-label {
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+        }
+
+        .sensor-box.alert {
+            border-color: var(--danger);
+            background: rgba(255, 0, 64, 0.1);
+            animation: pulse 0.5s infinite;
+        }
+
+        .sensor-box.alert .sensor-value {
+            color: var(--danger);
+            text-shadow: 0 0 15px var(--danger);
+        }
+
+        .last-capture {
+            margin-top: 15px;
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .last-capture img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .capture-info {
+            padding: 15px;
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .access-history {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .access-history::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .access-history::-webkit-scrollbar-track {
+            background: var(--bg-darker);
+        }
+
+        .access-history::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .history-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(0, 243, 255, 0.03);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: rgba(0, 243, 255, 0.08);
+            transform: translateX(5px);
+        }
+
+        .history-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 5px;
+            object-fit: cover;
+            border: 1px solid var(--primary);
+        }
+
+        .history-details {
+            flex: 1;
+        }
+
+        .history-name {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .history-time {
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .history-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .history-badge.granted {
+            background: rgba(0, 255, 65, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .history-badge.denied {
+            background: rgba(255, 170, 0, 0.2);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .history-badge.weapon {
+            background: rgba(255, 0, 64, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        @keyframes slide-in {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .history-item {
+            animation: slide-in 0.4s ease-out;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>⬢ QUANTUM SECURITY PROTOCOL</h1>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span>SYSTEM ACTIVE</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <span>◉</span> LIVE SURVEILLANCE FEED
+                </div>
+                <img id="videoElement" src="/video_feed" alt="Initializing camera...">
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <span>◈</span> ACCESS HISTORY LOG
+                </div>
+                <div class="access-history" id="accessHistory"></div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="card">
+                <div class="card-header">
+                    <span>⚙</span> SYSTEM STATUS
+                </div>
+                <div class="info-row">
+                    <span class="info-label">CURRENT TIME</span>
+                    <span class="info-value" id="currentTime">--:--:--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">SYSTEM UPTIME</span>
+                    <span class="info-value" id="uptime">00:00:00</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">SYSTEM HEALTH</span>
+                    <span class="info-value" id="health">OPTIMAL</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ESP32 STATUS</span>
+                    <span class="info-value" id="esp32Status">CHECKING...</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>📡</span> ESP32 SENSORS
+                </div>
+                <div class="sensor-grid">
+                    <div class="sensor-box" id="sensor1Box">
+                        <div class="sensor-value" id="distance1">--</div>
+                        <div class="sensor-label">ULTRASONIC 1 (cm)</div>
+                    </div>
+                    <div class="sensor-box" id="sensor2Box">
+                        <div class="sensor-value" id="distance2">--</div>
+                        <div class="sensor-label">ULTRASONIC 2 (cm)</div>
+                    </div>
+                    <div class="sensor-box" id="smokeBox" style="grid-column: span 2;">
+                        <div class="sensor-value" id="smoke">--</div>
+                        <div class="sensor-label">SMOKE/GAS SENSOR</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>◐</span> ANALYTICS
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-number" id="statGranted">0</div>
+                        <div class="stat-label">GRANTED</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number" id="statDenied">0</div>
+                        <div class="stat-label">DENIED</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number" id="statWeapons">0</div>
+                        <div class="stat-label">THREATS</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>◪</span> LAST ACCESS EVENT
+                </div>
+                <div class="info-row">
+                    <span class="info-label">PERSON</span>
+                    <span class="info-value" id="lastPerson">NONE</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">TIME</span>
+                    <span class="info-value" id="lastTime">N/A</span>
+                </div>
+                <div class="last-capture" id="lastCaptureContainer" style="display: none;">
+                    <img id="lastCaptureImage" src="" alt="Last capture">
+                    <div class="capture-info">
+                        <div class="info-value" id="captureEvent">ACCESS EVENT</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>⚠</span> THREAT STATUS
+                </div>
+                <div class="threat-display" id="threatDisplay">
+                    <div class="threat-text">SECURE</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioContext = null;
+
+        document.addEventListener('click', function initAudio() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('[AUDIO] ✅ Context initialized');
+                } catch (e) {
+                    console.warn('[AUDIO] ⚠ Initialization failed');
+                }
+                document.removeEventListener('click', initAudio);
+            }
+        }, { once: true });
+
+        setTimeout(() => {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {}
+        }, 1000);
+
+        function playSound(type) {
+            if (!audioContext) return;
+
+            try {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+
+                if (type === 'granted') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523, audioContext.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioContext.currentTime + 0.3);
+                } else if (type === 'denied') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, audioContext.currentTime);
+                    osc.frequency.linearRampToValueAtTime(100, audioContext.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(audioContext.currentTime + 0.4);
+                } else if (type === 'weapon') {
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            const o = audioContext.createOscillator();
+                            const g = audioContext.createGain();
+                            o.connect(g);
+                            g.connect(audioContext.destination);
+                            o.type = 'square';
+                            o.frequency.setValueAtTime(880, audioContext.currentTime);
+                            g.gain.setValueAtTime(0.4, audioContext.currentTime);
+                            g.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                            o.start();
+                            o.stop(audioContext.currentTime + 0.15);
+                        }, i * 250);
+                    }
+                } else if (type === 'fire') {
+                    for (let i = 0; i < 5; i++) {
+                        setTimeout(() => {
+                            const o = audioContext.createOscillator();
+                            const g = audioContext.createGain();
+                            o.connect(g);
+                            g.connect(audioContext.destination);
+                            o.type = 'square';
+                            o.frequency.setValueAtTime(1000, audioContext.currentTime);
+                            g.gain.setValueAtTime(0.5, audioContext.currentTime);
+                            g.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                            o.start();
+                            o.stop(audioContext.currentTime + 0.1);
+                        }, i * 150);
+                    }
+                } else if (type === 'footstep') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, audioContext.currentTime);
+                    gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioContext.currentTime + 0.2);
+                }
+            } catch (e) {
+                console.error('[AUDIO] Playback error:', e);
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString();
+        }
+        setInterval(updateSystemData, 200);
+        setInterval(updateAccessHistory, 2000);
+        updateSystemData();
+        updateAccessHistory();
+
+        console.log('[SYSTEM] ⚡ Quantum Security Protocol with ESP32 Integration initialized');
+    </script>
+</body>
+</html>(updateClock, 1000);
+        updateClock();
+
+        function updateSystemData() {
+            fetch('/system_data')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('lastPerson').textContent = data.last_person;
+                    document.getElementById('lastTime').textContent = data.last_time;
+                    document.getElementById('uptime').textContent = data.uptime;
+                    document.getElementById('health').textContent = data.health.toUpperCase();
+                    
+                    updateStat('statGranted', data.stats.granted);
+                    updateStat('statDenied', data.stats.denied);
+                    updateStat('statWeapons', data.stats.weapons);
+
+                    if (data.esp32) {
+                        const esp32StatusEl = document.getElementById('esp32Status');
+                        if (data.esp32.status === 'Connected') {
+                            esp32StatusEl.textContent = 'ONLINE';
+                            esp32StatusEl.style.color = 'var(--success)';
+                        } else {
+                            esp32StatusEl.textContent = 'OFFLINE';
+                            esp32StatusEl.style.color = 'var(--danger)';
+                        }
+
+                        const d1 = data.esp32.distance1;
+                        const d2 = data.esp32.distance2;
+                        const smoke = data.esp32.smoke;
+
+                        document.getElementById('distance1').textContent = d1 > 0 ? d1 : '--';
+                        document.getElementById('distance2').textContent = d2 > 0 ? d2 : '--';
+                        document.getElementById('smoke').textContent = smoke >= 0 ? smoke : '--';
+
+                        const sensor1Box = document.getElementById('sensor1Box');
+                        const sensor2Box = document.getElementById('sensor2Box');
+                        const smokeBox = document.getElementById('smokeBox');
+
+                        if (d1 > 0 && d1 < 100) {
+                            sensor1Box.classList.add('alert');
+                        } else {
+                            sensor1Box.classList.remove('alert');
+                        }
+
+                        if (d2 > 0 && d2 < 100) {
+                            sensor2Box.classList.add('alert');
+                        } else {
+                            sensor2Box.classList.remove('alert');
+                        }
+
+                        if (smoke > 500) {
+                            smokeBox.classList.add('alert');
+                        } else {
+                            smokeBox.classList.remove('alert');
+                        }
+                    }
+
+                    const threatDisplay = document.getElementById('threatDisplay');
+                    const threatText = threatDisplay.querySelector('.threat-text');
+
+                    if (data.event === 'fire') {
+                        threatDisplay.className = 'threat-display fire';
+                        threatText.textContent = '🔥 FIRE DETECTED 🔥';
+                        playSound('fire');
+                        setTimeout(() => {
+                            threatDisplay.className = 'threat-display';
+                            threatText.textContent = 'SECURE';
+                        }, 5000);
+                    } else if (data.event === 'weapon') {
+                        threatDisplay.className = 'threat-display danger';
+                        threatText.textContent = '⚠ ARMED THREAT ⚠';
+                        playSound('weapon');
+                        setTimeout(() => {
+                            threatDisplay.className = 'threat-display';
+                            threatText.textContent = 'SECURE';
+                        }, 3000);
+                    } else if (data.event === 'denied') {
+                        threatDisplay.className = 'threat-display warning';
+                        threatText.textContent = '⚠ ACCESS DENIED ⚠';
+                        playSound('denied');
+                        setTimeout(() => {
+                            threatDisplay.className = 'threat-display';
+                            threatText.textContent = 'SECURE';
+                        }, 2000);
+                    } else if (data.event === 'granted') {
+                        playSound('granted');
+                    } else if (data.event === 'footstep') {
+                        threatDisplay.className = 'threat-display footstep';
+                        threatText.textContent = '👣 FOOTSTEP APPROACHING 👣';
+                        playSound('footstep');
+                        setTimeout(() => {
+                            threatDisplay.className = 'threat-display';
+                            threatText.textContent = 'SECURE';
+                        }, 2000);
+                    }
+
+                    if (data.last_image) {
+                        document.getElementById('lastCaptureContainer').style.display = 'block';
+                        document.getElementById('lastCaptureImage').src = data.last_image;
+                        document.getElementById('captureEvent').textContent = data.last_person;
+                    }
+                })
+                .catch(err => console.error('[ERROR]', err));
+        }
+
+        function updateStat(id, value) {
+            const el = document.getElementById(id);
+            if (el.textContent != value) {
+                el.textContent = value;
+                el.style.animation = 'none';
+                setTimeout(() => el.style.animation = '', 10);
+            }
+        }
+
+        function updateAccessHistory() {
+            fetch('/access_history')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('accessHistory');
+                    container.innerHTML = '';
+                    
+                    data.history.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'history-item';
+                        div.innerHTML = `
+                            <img class="history-thumb" src="${item.image}" alt="${item.person}">
+                            <div class="history-details">
+                                <div class="history-name">${item.person}</div>
+                                <div class="history-time">${item.date} at ${item.time}</div>
+                                <span class="history-badge ${item.event}">${item.event.toUpperCase()}</span>
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    });
+                })
+                .catch(err => console.error('[ERROR]', err));
+        }
+
+        setInterval(updateSystemData, 200);
+        setInterval(updateAccessHistory, 2000);
+        updateSystemData();
+        updateAccessHistory();
+
+        console.log('[SYSTEM] ⚡ Quantum Security Protocol with ESP32 Integration initialized');
+    </script>
+</body>
+</html>
